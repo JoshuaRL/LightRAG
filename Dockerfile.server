@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 # Copy necessary files
 COPY requirements.txt .
 COPY lightrag/api/requirements.txt ./lightrag/api/
-COPY .env.ex
+COPY .env.ex .
 
 # Install dependencies
 ENV PATH="/root/.cargo/bin:${PATH}"
