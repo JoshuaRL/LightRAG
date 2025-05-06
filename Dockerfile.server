@@ -12,9 +12,10 @@ RUN apt-get update && apt-get install -y \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
     && . $HOME/.cargo/env
 
-# Copy only requirements files first to leverage Docker cache
+# Copy necessary files
 COPY requirements.txt .
 COPY lightrag/api/requirements.txt ./lightrag/api/
+COPY .env.ex
 
 # Install dependencies
 ENV PATH="/root/.cargo/bin:${PATH}"
@@ -32,7 +33,7 @@ COPY ./lightrag ./lightrag
 COPY setup.py .
 
 # Copy .env.example and rename it to .env if .env does not exist
-RUN cp -n /app/.env.example /app/.env
+RUN cp -n /app/.env.ex /app/.env
 
 RUN pip install .
 # Make sure scripts in .local are usable
