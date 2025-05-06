@@ -1,0 +1,59 @@
+# Build stage
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+# Install Rust and required build dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    && . $HOME/.cargo/env
+
+# Copy only requirements files first to leverage Docker cache
+COPY requirements.txt .
+COPY lightrag/api/requirements.txt ./lightrag/api/
+
+# Install dependencies
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --user --no-cache-dir -r lightrag/api/requirements.txt
+
+# Final stage
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy only necessary files from builder
+COPY --from=builder /root/.local /root/.local
+COPY ./lightrag ./lightrag
+COPY setup.py .
+
+RUN pip install .
+# Make sure scripts in .local are usable
+ENV PATH=/root/.local/bin:$PATH
+
+# Create necessary directories
+RUN mkdir -p /app/data/rag_storage /app/data/inputs
+
+# Docker data directories
+ENV WORKING_DIR=/app/data/rag_storage
+ENV INPUT_DIR=/app/data/inputs
+
+# Expose the default port
+EXPOSE 9621
+
+# Set environment variables for connecting to Neo4j, PostgreSQL, Ollama, etc.
+ENV NEO4J_URI=bolt://neo4j:7687
+ENV NEO4J_USER=neo4j
+ENV NEO4J_PASSWORD=your_neo4j_password
+ENV POSTGRESQL_HOST=postgres
+ENV POSTGRESQL_USER=postgres
+ENV POSTGRESQL_PASSWORD=your_postgresql_password
+ENV POSTGRESQL_DB=lightrag
+ENV OLLAMA_URI=http://ollama:11434
+
+# Set entrypoint
+ENTRYPOINT ["python", "-m", "lightrag.api.lightrag_server"]
