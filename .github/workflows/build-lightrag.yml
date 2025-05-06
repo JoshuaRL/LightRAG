@@ -28,8 +28,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    schedule:
-      - cron: '0 0 * * *'  # Run daily at midnight UTC
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
